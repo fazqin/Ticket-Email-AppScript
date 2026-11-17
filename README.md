@@ -1,4 +1,4 @@
-# CISP Scan Registrasi — Sistem E-Tiket & Scanner QR Event
+# Sistem E-Tiket & Scanner QR Event
 
 Sistem registrasi ulang, verifikasi voucher konsumsi, dan distribusi e-tiket otomatis berbasis **Google Apps Script** dan **Google Sheets**. Dirancang *mobile-first* agar panitia acara (**SPMS The Halal Portofolio Project**) dapat memindai QR Code peserta langsung dari browser ponsel tanpa perlu instalasi aplikasi tambahan.
 
