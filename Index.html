@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Scanner Registrasi & Voucher</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --accent: #00d2b4;
+      --success-bg: #064e3b;
+      --success-text: #6ee7b7;
+      --warning-bg: #78350f;
+      --warning-text: #fde68a;
+      --danger-bg: #7f1d1d;
+      --danger-text: #fca5a5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .header-box {
+      text-align: center;
+      padding: 12px 0 6px;
+    }
+    .header-box h1 { font-size: 20px; font-weight: 700; color: #fff; }
+    .header-box p { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 4px; }
+
+    .card {
+      background-color: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid #334155;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px;
+      background-color: #0f172a;
+      border: 1px solid #475569;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-scan { background-color: var(--primary); color: #fff; }
+    .btn-scan:hover { background-color: var(--primary-hover); }
+    .btn-stop { background-color: #475569; color: #fff; margin-top: 10px; }
+
+    #reader-wrapper {
+      display: none;
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+    #reader { width: 100%; }
+
+    .result-banner {
+      display: none;
+      padding: 14px;
+      border-radius: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+    .result-banner.success { background-color: var(--success-bg); color: var(--success-text); border: 1px solid #059669; }
+    .result-banner.warning { background-color: var(--warning-bg); color: var(--warning-text); border: 1px solid #d97706; }
+    .result-banner.danger { background-color: var(--danger-bg); color: var(--danger-text); border: 1px solid #dc2626; }
+    
+    .result-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+    .result-detail { font-size: 13px; line-height: 1.5; }
+
+    .history-card {
+      background-color: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid #334155;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .history-title { font-size: 14px; font-weight: 700; color: #fff; }
+    .badge {
+      background-color: #0284c7;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .scanned-list {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .scanned-item {
+      background-color: #0f172a;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-name { font-size: 14px; font-weight: 600; color: #f1f5f9; }
+    .item-id { font-size: 12px; color: var(--accent); font-weight: 700; }
+    .empty-state { text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-box">
+      <h1>CISP SCAN REGISTRASI</h1>
+      <p>Verifikasi Tiket & Voucher Konsumsi</p>
+    </div>
+
+    <!-- Pilih Identitas PJ -->
+    <div class="card">
+      <label for="pjSelect">Siapa Nama Panitia / PJ yang Bertugas?</label>
+      <select id="pjSelect" onchange="onPjChanged()">
+        <option value="" disabled selected>Memuat daftar PJ...</option>
+      </select>
+    </div>
+
+    <!-- Tombol & Area Scanner -->
+    <div class="card">
+      <button id="btnToggleScan" class="btn btn-scan" onclick="startScanner()">
+        📷 Buka Kamera Scan QR
+      </button>
+
+      <div id="reader-wrapper">
+        <div id="reader"></div>
+        <button class="btn btn-stop" onclick="stopScanner()">Tutup Kamera</button>
+      </div>
+
+      <!-- Hasil Scan Banner -->
+      <div id="scanResult" class="result-banner" style="margin-top: 14px;">
+        <div id="resultTitle" class="result-title"></div>
+        <div id="resultDetail" class="result-detail"></div>
+      </div>
+    </div>
+
+    <!-- Daftar Peserta yang Sudah Di-scan oleh PJ ini -->
+    <div class="history-card">
+      <div class="history-header">
+        <div class="history-title" id="historyTitle">Peserta Di-scan (0)</div>
+        <div class="badge" id="scannedBadge">0 Peserta</div>
+      </div>
+      <div class="scanned-list" id="scannedList">
+        <div class="empty-state">Belum ada peserta yang di-scan.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let html5QrCode = null;
+    let isProcessing = false;
+    let audioCtx = null;
+
+    // Suara Beep saat sukses
+    function playBeep(freq = 880, duration = 0.15) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // Load data PJ saat pertama kali buka web app
+    window.addEventListener('DOMContentLoaded', () => {
+      google.script.run.withSuccessHandler(populatePjList).getPjList();
+    });
+
+    function populatePjList(list) {
+      const select = document.getElementById('pjSelect');
+      select.innerHTML = '';
+      list.forEach((pj, idx) => {
+        const opt = document.createElement('option');
+        opt.value = pj;
+        opt.textContent = pj;
+        select.appendChild(opt);
+      });
+
+      // Simpan session PJ terakhir di browser
+      const savedPj = localStorage.getItem('cisp_selected_pj');
+      if (savedPj && list.includes(savedPj)) {
+        select.value = savedPj;
+      }
+      onPjChanged();
+    }
+
+    function onPjChanged() {
+      const select = document.getElementById('pjSelect');
+      const selectedPj = select.value;
+      if (!selectedPj) return;
+      localStorage.setItem('cisp_selected_pj', selectedPj);
+      
+      document.getElementById('historyTitle').textContent = `Di-scan oleh ${selectedPj}`;
+      // Ambil riwayat scan PJ ini
+      google.script.run.withSuccessHandler(renderScannedList).getPjScannedList(selectedPj);
+    }
+
+    function renderScannedList(items) {
+      const listEl = document.getElementById('scannedList');
+      const badge = document.getElementById('scannedBadge');
+      badge.textContent = `${items.length} Peserta`;
+
+      if (items.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">Belum ada peserta yang di-scan oleh PJ ini.</div>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      // Tampilkan paling baru di atas
+      [...items].reverse().forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'scanned-item';
+        div.innerHTML = `
+          <div>
+            <div class="item-name">${item.name}</div>
+          </div>
+          <div class="item-id">${item.idTicket}</div>
+        `;
+        listEl.appendChild(div);
+      });
+    }
+
+    function startScanner() {
+      const selectedPj = document.getElementById('pjSelect').value;
+      if (!selectedPj) {
+        alert("Silakan pilih identitas PJ terlebih dahulu!");
+        return;
+      }
+
+      document.getElementById('reader-wrapper').style.display = 'block';
+      document.getElementById('btnToggleScan').style.display = 'none';
+
+      html5QrCode = new Html5Qrcode("reader");
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess,
+        (errorMessage) => {}
+      ).catch(err => {
+        // Fallback kamera depan jika environment gagal
+        html5QrCode.start({ facingMode: "user" }, config, onScanSuccess, (e) => {});
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          document.getElementById('reader-wrapper').style.display = 'none';
+          document.getElementById('btnToggleScan').style.display = 'flex';
+          html5QrCode = null;
+        }).catch(err => {
+          document.getElementById('reader-wrapper').style.display = 'none';
+          document.getElementById('btnToggleScan').style.display = 'flex';
+        });
+      }
+    }
+
+    function onScanSuccess(decodedText) {
+      if (isProcessing) return;
+      isProcessing = true;
+
+      const selectedPj = document.getElementById('pjSelect').value;
+      playBeep(980, 0.12);
+
+      // Kirim data ke Google Apps Script backend
+      google.script.run
+        .withSuccessHandler(handleCheckInResponse)
+        .withFailureHandler(err => {
+          showResult('danger', 'Gagal Memproses', err.message);
+          isProcessing = false;
+        })
+        .processCheckIn(decodedText, selectedPj);
+    }
+
+    function handleCheckInResponse(res) {
+      if (res.status === 'SUCCESS') {
+        playBeep(1200, 0.2);
+        showResult('success', 'BERHASIL CHECK-IN!', 
+          `<b>${res.name}</b> (${res.idTicket})<br>Kehadiran: Hadir | Voucher: Diambil<br>Waktu: ${res.checkInTime}`);
+        
+        // Refresh riwayat scan PJ
+        const selectedPj = document.getElementById('pjSelect').value;
+        google.script.run.withSuccessHandler(renderScannedList).getPjScannedList(selectedPj);
+      } else if (res.status === 'ALREADY_CHECKED_IN') {
+        playBeep(440, 0.3);
+        showResult('warning', 'PERINGATAN: SUDAH CHECK-IN', 
+          `<b>${res.name}</b> (${res.idTicket}) sudah scan sebelumnya pada:<br>${res.checkInTime}`);
+      } else {
+        playBeep(250, 0.4);
+        showResult('danger', 'TIKET TIDAK VALID', res.message);
+      }
+
+      // Beri jeda 2 detik sebelum bisa scan tiket berikutnya
+      setTimeout(() => {
+        isProcessing = false;
+      }, 2000);
+    }
+
+    function showResult(type, title, detail) {
+      const banner = document.getElementById('scanResult');
+      banner.className = `result-banner ${type}`;
+      banner.style.display = 'block';
+      document.getElementById('resultTitle').textContent = title;
+      document.getElementById('resultDetail').innerHTML = detail;
+    }
+  </script>
+</body>
+</html>
